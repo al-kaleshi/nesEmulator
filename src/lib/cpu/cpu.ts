@@ -272,7 +272,6 @@ class CPU {
     }
   }
 
-  // Relative displacemnt is after opcode.
   private bcc(params: InstructionParams) {
     const { addressMode } = params;
     switch (addressMode) {
@@ -282,8 +281,10 @@ class CPU {
           const [relativeDisplacemet] = this._bus.read({ address, bytes: 1 });
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
-          break;
+        } else {
+          this._programCounter+=1;
         }
+        break;
       }
       default: {
         throw new Error(`[BCC] Does not support Address Mode ${addressMode}`);
@@ -300,8 +301,10 @@ class CPU {
           const [relativeDisplacemet] = this._bus.read({ address, bytes: 1 });
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
-          break;
+        } else {
+          this._programCounter+=1;
         }
+        break;
       }
       default: {
         throw new Error(`[BCS] Does not support Address Mode ${addressMode}`);
@@ -318,8 +321,10 @@ class CPU {
           const [relativeDisplacemet] = this._bus.read({ address, bytes: 1 });
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
-          break;
+        } else {
+          this._programCounter+=1;
         }
+        break;
       }
       default: {
         throw new Error(`[BEQ] Does not support Address Mode ${addressMode}`);
@@ -333,12 +338,12 @@ class CPU {
     switch (addressMode) {
       case AddressMode.ZeroPage:
       case AddressMode.Absolute: {
-        const address = this.getOperatorAddress({ addressMode })!;
-        const [value] = this._bus.read({ address: address!, bytes: 1 });
-        const mask = this.accumulator & value!;
-        this.zero = (mask & 0xff) === 0;
+        const [address] = this._bus.read({ address: this.getOperatorAddress({ addressMode })!, bytes: 1 })!;
+        const [value] = this._bus.read({ address, bytes: 1 });
+        const temp = this.accumulator & value!;
+        this.zero = (temp & 0xff) === 0;
         this.negative = Boolean((value & 0xff & 0x80) >> 7);
-        this.overflow = Boolean(((value & 0xff & value) >> 6) & 0x1);
+        this.overflow = Boolean(value & (1 << 6));
         break;
       }
       default: {
@@ -356,8 +361,10 @@ class CPU {
           const [relativeDisplacemet] = this._bus.read({ address, bytes: 1 });
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
-          break;
+        } else {
+          this._programCounter+=1;
         }
+        break;
       }
       default: {
         throw new Error(`[BMI] Does not support Address Mode ${addressMode}`);
@@ -374,8 +381,10 @@ class CPU {
           const [relativeDisplacemet] = this._bus.read({ address, bytes: 1 });
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
-          break;
+        } else {
+          this._programCounter+=1;
         }
+        break;
       }
       default: {
         throw new Error(`[BNE] Does not support Address Mode ${addressMode}`);
@@ -392,8 +401,10 @@ class CPU {
           const [relativeDisplacemet] = this._bus.read({ address, bytes: 1 });
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
-          break;
+        } else {
+          this._programCounter+=1;
         }
+        break;
       }
       default: {
         throw new Error(`[BPL] Does not support Address Mode ${addressMode}`);
@@ -419,13 +430,14 @@ class CPU {
           this._stackPointer -= 1;
 
           // Push 8 bit status register onto stack
-          this.break = { value: true, opcode: 0x00 };
+          this._status |= 0x30; 
           this.interruptDisable = true;
           this._bus.write({
             address: CPU.stackOffset + this._stackPointer,
             data: [this.status],
           });
           this._stackPointer -= 1;
+          this._status ^= 0x10; 
 
           const [low, high] = this._bus.read({ address: 0xfffe, bytes: 2 })!;
           this._programCounter = (high << 8) | low;
@@ -447,8 +459,10 @@ class CPU {
           const [relativeDisplacemet] = this._bus.read({ address, bytes: 1 });
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
-          break;
+        } else {
+          this._programCounter+=1;
         }
+        break;
       }
       default: {
         throw new Error(`[BVC] Does not support Address Mode ${addressMode}`);
@@ -465,8 +479,10 @@ class CPU {
           const [relativeDisplacemet] = this._bus.read({ address, bytes: 1 });
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
-          break;
+        } else {
+          this._programCounter+=1;
         }
+        break;
       }
       default: {
         throw new Error(`[BVS] Does not support Address Mode ${addressMode}`);
@@ -499,9 +515,9 @@ class CPU {
     const { addressMode } = params;
     switch (addressMode) {
       case AddressMode.Implicit: {
-        this._x -= 1;
-        this.zero = (this.x & 0xff) === 0;
-        this.negative = Boolean((this.x & 0xff & 0x80) >> 7);
+        this._x = (this._x - 1) & 0xff;
+        this.zero = this._x === 0;
+        this.negative = Boolean((this._x & 0x80) >> 7);
         break;
       }
       default: {
@@ -514,9 +530,9 @@ class CPU {
     const { addressMode } = params;
     switch (addressMode) {
       case AddressMode.Implicit: {
-        this._y -= 1;
-        this.zero = (this.y & 0xff) === 0;
-        this.negative = Boolean((this.y & 0xff & 0x80) >> 7);
+        this._y = (this._y - 1) & 0xff;
+        this.zero = this._y === 0;
+        this.negative = Boolean((this._y & 0x80) >> 7);
         break;
       }
       default: {
@@ -574,9 +590,9 @@ class CPU {
     const { addressMode } = params;
     switch (addressMode) {
       case AddressMode.Implicit: {
-        this._x += 1;
-        this.zero = (this.x & 0xff) === 0;
-        this.negative = Boolean((this.x & 0xff & 0x80) >> 7);
+        this._x = (this._x + 1) & 0xff;
+        this.zero = this._x === 0;
+        this.negative = Boolean((this._x & 0x80) >> 7);
         break;
       }
       default: {
@@ -589,9 +605,9 @@ class CPU {
     const { addressMode } = params;
     switch (addressMode) {
       case AddressMode.Implicit: {
-        this._y += 1;
-        this.zero = (this.y & 0xff) === 0;
-        this.negative = Boolean((this.y & 0xff & 0x80) >> 7);
+        this._y = (this._y + 1) & 0xff;
+        this.zero = this._y === 0;
+        this.negative = Boolean((this._y & 0x80) >> 7);
         break;
       }
       default: {
@@ -635,8 +651,7 @@ class CPU {
   private jsr(params: InstructionParams) {
     const { addressMode } = params;
     switch (addressMode) {
-      case AddressMode.Absolute: {
-        
+      case AddressMode.Absolute: {        
         this._bus.write({
           address: CPU.stackOffset + this.stackPointer,
           data: [(this.programCounter >> 8) & 0xff],
@@ -649,10 +664,9 @@ class CPU {
         });
         this._stackPointer -= 1;
 
+        
         const address = this.getOperatorAddress({ addressMode })!;
-
         this._programCounter = address;
-
         break;
       }
       default: {
@@ -665,11 +679,12 @@ class CPU {
     const { addressMode } = params;
     switch (addressMode) {
       case AddressMode.Implicit: {
+        this._status |= 0x30;
         this._bus.write({
           address: CPU.stackOffset + this._stackPointer,
-          data: [this.status | this.break],
+          data: [this.status],
         });
-        this.break = { value: false, opcode: 0x8 };
+        this._status ^= 0x30;
         this._stackPointer -= 1;
         break;
       }
@@ -789,9 +804,9 @@ class CPU {
     const { addressMode } = params;
     switch (addressMode) {
       case AddressMode.Implicit: {
-        this._x = this.stackPointer;
-        this.zero = (this.x & 0xff) === 0;
-        this.negative = Boolean((this.x & 0xff & 0x80) >> 7);
+        this._x = this.stackPointer & 0xff;
+        this.zero = (this.x ) === 0;
+        this.negative = Boolean((this.x & 0x80) >> 7);
         break;
       }
       default: {
@@ -900,16 +915,14 @@ class CPU {
 
   private ldx(params: InstructionParams) {
     const { addressMode } = params;
-
     switch (addressMode) {
       case AddressMode.Immediate:
       case AddressMode.ZeroPage:
       case AddressMode.ZeroPageY:
-      case AddressMode.Absolute:
+      case AddressMode.Absolute: 
       case AddressMode.AbsoluteY: {
         const address = this.getOperatorAddress({ addressMode });
         const [value] = this._bus.read({ address: address!, bytes: 1 });
-
         this._x = value!;
         this.zero = this._x === 0x0;
         this.negative = Boolean((this._x & 0x80) >> 7);
@@ -923,7 +936,6 @@ class CPU {
 
   private ldy(params: InstructionParams) {
     const { addressMode } = params;
-
     switch (addressMode) {
       case AddressMode.Immediate:
       case AddressMode.ZeroPage:
@@ -932,7 +944,6 @@ class CPU {
       case AddressMode.AbsoluteX: {
         const address = this.getOperatorAddress({ addressMode });
         const [value] = this._bus.read({ address: address!, bytes: 1 });
-
         this._y = value!;
         this.zero = this._y === 0x0;
         this.negative = Boolean((this._y & 0x80) >> 7);
@@ -948,7 +959,6 @@ class CPU {
     const { addressMode } = params;
     switch (addressMode) {
       case AddressMode.Implicit: {
-        this._programCounter += 1;
         break;
       }
       default: {
@@ -1153,7 +1163,7 @@ class CPU {
           bytes: 1,
         });
         this.status = newStatus;
-        this.status &= ~this.break;
+        this.status &= ~((this.status >> 4) & 0x3);
         this.stackPointer += 1;
         const [low] = this._bus.read({
           address: CPU.stackOffset + this.stackPointer,
@@ -1188,7 +1198,7 @@ class CPU {
           bytes: 1,
         });
         this._programCounter = (high << 8) | low;
-        this._programCounter += 1;
+        this._programCounter += 2;
         break;
       }
       default: {
@@ -1239,9 +1249,10 @@ class CPU {
       case AddressMode.IndirectIndexed: {
         const address = this.getOperatorAddress({ addressMode })!;
         const [value] = this._bus.read({ address, bytes: 1 });
-        const invertedValue =
-          this.accumulator >= value ? value * -1 : (value ^ 0xff) - 255;
+        const invertedValue = value ^ 0xFF;
+        
         const result = this.accumulator + invertedValue + (this.carry ? 1 : 0);
+
         this.carry = Boolean((result & CPU.stackOffset) >> 8);
         this.zero = (result & 0xff) === 0;
         this.overflow = Boolean(
@@ -1263,7 +1274,7 @@ class CPU {
       this.stackPointer -= 1;
       this._bus.write({address: CPU.stackOffset + this.stackPointer, data:[ this.programCounter & 0xFF]});
       this.stackPointer -= 1;
-      this.break = {value: false, opcode:0xDEADBEEF};
+      this._status |= 0x30;
       this.interruptDisable = true;
       this._bus.write({address: CPU.stackOffset + this.stackPointer, data:[ this.status ]});
       this.stackPointer -= 1;
@@ -1279,7 +1290,7 @@ class CPU {
     this._bus.write({address: CPU.stackOffset + this.stackPointer, data:[ this.programCounter & 0xFF]});
     this.stackPointer -= 1;
 
-    this.break = {value: false, opcode:0xDEADBEEF};
+    this._status ^= 0x30;
     this.interruptDisable = true;
     this._bus.write({address: CPU.stackOffset + this.stackPointer, data:[ this.status ]});
     this.stackPointer -= 1;
@@ -1381,25 +1392,6 @@ class CPU {
     }
   }
 
-  get break(): number {
-    return (this._status & 0x30) >> 4;
-  }
-
-  set break(params: SetBreakParams) {
-    const { value, opcode } = params;
-    switch (opcode) {
-      case 0x0:
-      case 0x8: {
-        this._status = value ? (this._status |= 0x30) : (this._status &= 0x30);
-        break;
-      }
-      default: {
-        this._status = value ? (this._status |= 0x20) : (this._status &= 0x20);
-        break;
-      }
-    }
-  }
-
   get overflow() {
     return Boolean((this._status & 0x40) >> 6);
   }
@@ -1442,10 +1434,10 @@ class CPU {
 
     console.log(`PC: 0x${this.programCounter.toString(16)}`);
     console.log(`OPCODE: ${opCode.toString(16)}`);
-    console.log(`ACC: 0x${this.accumulator.toString(16)}`);
-    console.log(`SP: 0x${this.stackPointer.toString(16)}`);
-    console.log(`X: 0x${this.x.toString(16)}`);
-    console.log(`Y: 0x${this.y.toString(16)}`);
+    // console.log(`ACC: 0x${this.accumulator.toString(16)}`);
+    // console.log(`SP: 0x${this.stackPointer.toString(16)}`);
+    // console.log(`X: 0x${this.x.toString(16)}`);
+    // console.log(`Y: 0x${this.y.toString(16)}`);
 
     this._programCounter += 1;
 
