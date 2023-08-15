@@ -45,9 +45,15 @@ class CPU {
         return;
       }
       case AddressMode.Immediate:
-      case AddressMode.Relative:
-      case AddressMode.ZeroPage: {
+      case AddressMode.Relative: {
         return this._programCounter++;
+      }
+      case AddressMode.ZeroPage: {
+        const [address] = this._bus.read({
+          address: this._programCounter++,
+          bytes: 1,
+        });
+        return address;
       }
       case AddressMode.ZeroPageX: {
         const [address] = this._bus.read({
@@ -651,22 +657,23 @@ class CPU {
   private jsr(params: InstructionParams) {
     const { addressMode } = params;
     switch (addressMode) {
-      case AddressMode.Absolute: {        
+      case AddressMode.Absolute: {
+        const address = this.getOperatorAddress({ addressMode })!;
+        this._programCounter -= 1; 
         this._bus.write({
           address: CPU.stackOffset + this.stackPointer,
-          data: [(this.programCounter >> 8) & 0xff],
+          data: [(this._programCounter >> 8) & 0xff],
         });
         this._stackPointer -= 1;
 
         this._bus.write({
           address: CPU.stackOffset + this.stackPointer,
-          data: [this.programCounter & 0xff],
+          data: [(this._programCounter) & 0xff],
         });
         this._stackPointer -= 1;
+        this._programCounter = address;
 
         
-        const address = this.getOperatorAddress({ addressMode })!;
-        this._programCounter = address;
         break;
       }
       default: {
@@ -886,8 +893,7 @@ class CPU {
       case AddressMode.ZeroPageY:
       case AddressMode.Absolute: {
         const address = this.getOperatorAddress({ addressMode })!;
-        const [value] = this._bus.read({ address, bytes: 1 });
-        this._bus.write({ address: value, data: [this.x] });
+        this._bus.write({ address, data: [this.x] });
         break;
       }
       default: {
@@ -903,8 +909,7 @@ class CPU {
       case AddressMode.ZeroPageX:
       case AddressMode.Absolute: {
         const address = this.getOperatorAddress({ addressMode })!;
-        const [value] = this._bus.read({ address, bytes: 1 });
-        this._bus.write({ address: value, data: [this.y] });
+        this._bus.write({ address, data: [this.y] });
         break;
       }
       default: {
@@ -1188,17 +1193,20 @@ class CPU {
     switch (addressMode) {
       case AddressMode.Implicit: {
         this.stackPointer += 1;
+    
         const [low] = this._bus.read({
           address: CPU.stackOffset + this.stackPointer,
           bytes: 1,
         });
+        this._programCounter = low!;
         this.stackPointer += 1;
+
         const [high] = this._bus.read({
           address: CPU.stackOffset + this.stackPointer,
           bytes: 1,
         });
-        this._programCounter = (high << 8) | low;
-        this._programCounter += 2;
+        this._programCounter |= (high << 8);
+        this._programCounter += 1;
         break;
       }
       default: {
