@@ -1,3 +1,25 @@
+/* globals.css */
 @tailwind base;
 @tailwind components;
+
+/* Additional styles */
+body {
+    background-color: #c0c0c0;
+    font-family: 'Inter', sans-serif;
+    margin: 5px;
+}
+
+input {
+    width: 50px;
+    display: flex;
+    font-size: 14px;
+    color: #2d3748;
+    padding: 8px;
+    border: 1px solid #cbd5e0;
+    background-color: #fff;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s ease-in-out;
+}
+
 @tailwind utilities;

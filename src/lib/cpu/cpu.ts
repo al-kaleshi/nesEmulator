@@ -60,14 +60,14 @@ class CPU {
           address: this._programCounter++,
           bytes: 1,
         });
-        return (address + this._x) % 0xff;
+        return (address + this._x) & 0xff;
       }
       case AddressMode.ZeroPageY: {
         const [address] = this._bus.read({
           address: this._programCounter++,
           bytes: 1,
         });
-        return (address + this._y) % 0xff;
+        return (address + this._y) & 0xff;
       }
       case AddressMode.Absolute: {
         const [low, high] = this._bus.read({
@@ -91,7 +91,7 @@ class CPU {
           bytes: 2,
         });
         this._programCounter += 2;
-        return ((high! << 8) | low!) + this._y;
+        return (((high! << 8) | low!) + this._y) & 0xffff;
       }
       case AddressMode.Indirect: {
         let [inDirectLow, inDirectHigh] = this._bus.read({
@@ -99,12 +99,27 @@ class CPU {
           bytes: 2,
         });
         this._programCounter += 2;
-        const inDirectAddress = (inDirectHigh! << 8) | inDirectLow!;
-        const [low, high] = this._bus.read({
-          address: inDirectAddress,
-          bytes: 2,
-        });
-        return (high! << 8) | low!;
+
+        if (inDirectLow === 0xff) {
+          const inDirectAddress = (inDirectHigh! << 8) | inDirectLow!;
+          const [low] = this._bus.read({
+            address: inDirectAddress,
+            bytes: 1,
+          });
+          const [high] = this._bus.read({
+            address: inDirectAddress & 0xff00,
+            bytes: 1,
+          });
+          return (high! << 8) | low!;
+        } else {
+          const inDirectAddress = (inDirectHigh! << 8) | inDirectLow!;
+          const [low, high] = this._bus.read({
+            address: inDirectAddress,
+            bytes: 2,
+          });
+          return (high! << 8) | low!;
+        }
+        
       }
       case AddressMode.IndexedIndirect: {
         const [offset] = this._bus.read({
@@ -113,11 +128,11 @@ class CPU {
         });
         this._programCounter += 1;
         const [low] = this._bus.read({
-          address: (offset + this._x) % 0xff,
+          address: (offset + this._x) & 0xff,
           bytes: 1,
         });
         const [high] = this._bus.read({
-          address: (offset + this._x + 1) % 0xff,
+          address: (offset + this._x + 1) & 0xff,
           bytes: 1,
         });
         return (high! << 8) | low!;
@@ -129,14 +144,14 @@ class CPU {
         });
         this._programCounter += 1;
         const [low] = this._bus.read({
-          address: offset!,
+          address: offset! & 0xff,
           bytes: 1,
         });
         const [high] = this._bus.read({
-          address: (offset! + 1) % 0xff,
+          address: (offset! + 1) & 0xff,
           bytes: 1,
         });
-        return ((high! << 8) | low!) + this._y;
+        return (((high! << 8) | low!) + this._y) & 0xffff;
       }
       default: {
         throw new Error(`[CPU]: Address Mode:${addressMode} does not exist`);
@@ -146,7 +161,6 @@ class CPU {
 
   private lda(params: InstructionParams) {
     const { addressMode } = params;
-
     switch (addressMode) {
       case AddressMode.Immediate:
       case AddressMode.ZeroPage:
@@ -224,7 +238,6 @@ class CPU {
 
   private cmp(params: InstructionParams) {
     const { addressMode } = params;
-
     switch (addressMode) {
       case AddressMode.Immediate:
       case AddressMode.ZeroPage:
@@ -288,7 +301,7 @@ class CPU {
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
         } else {
-          this._programCounter+=1;
+          this._programCounter += 1;
         }
         break;
       }
@@ -308,7 +321,7 @@ class CPU {
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
         } else {
-          this._programCounter+=1;
+          this._programCounter += 1;
         }
         break;
       }
@@ -328,7 +341,7 @@ class CPU {
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
         } else {
-          this._programCounter+=1;
+          this._programCounter += 1;
         }
         break;
       }
@@ -367,7 +380,7 @@ class CPU {
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
         } else {
-          this._programCounter+=1;
+          this._programCounter += 1;
         }
         break;
       }
@@ -387,7 +400,7 @@ class CPU {
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
         } else {
-          this._programCounter+=1;
+          this._programCounter += 1;
         }
         break;
       }
@@ -407,7 +420,7 @@ class CPU {
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
         } else {
-          this._programCounter+=1;
+          this._programCounter += 1;
         }
         break;
       }
@@ -435,14 +448,14 @@ class CPU {
           this._stackPointer -= 1;
 
           // Push 8 bit status register onto stack
-          this._status |= 0x30; 
+          this._status |= 0x30;
           this.interruptDisable = true;
           this._bus.write({
             address: CPU.stackOffset + this._stackPointer,
             data: [this.status],
           });
           this._stackPointer -= 1;
-          this._status ^= 0x10; 
+          this._status ^= 0x10;
 
           const [low, high] = this._bus.read({ address: 0xfffe, bytes: 2 })!;
           this._programCounter = (high << 8) | low;
@@ -465,7 +478,7 @@ class CPU {
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
         } else {
-          this._programCounter+=1;
+          this._programCounter += 1;
         }
         break;
       }
@@ -485,7 +498,7 @@ class CPU {
           const result = this._programCounter + relativeDisplacemet;
           this._programCounter = result;
         } else {
-          this._programCounter+=1;
+          this._programCounter += 1;
         }
         break;
       }
@@ -658,7 +671,7 @@ class CPU {
     switch (addressMode) {
       case AddressMode.Absolute: {
         const address = this.getOperatorAddress({ addressMode })!;
-        this._programCounter -= 1; 
+        this._programCounter -= 1;
         this._bus.write({
           address: CPU.stackOffset + this.stackPointer,
           data: [(this._programCounter >> 8) & 0xff],
@@ -667,12 +680,11 @@ class CPU {
 
         this._bus.write({
           address: CPU.stackOffset + this.stackPointer,
-          data: [(this._programCounter) & 0xff],
+          data: [this._programCounter & 0xff],
         });
         this._stackPointer -= 1;
         this._programCounter = address;
 
-        
         break;
       }
       default: {
@@ -811,7 +823,7 @@ class CPU {
     switch (addressMode) {
       case AddressMode.Implicit: {
         this._x = this.stackPointer & 0xff;
-        this.zero = (this.x ) === 0;
+        this.zero = this.x === 0;
         this.negative = Boolean((this.x & 0x80) >> 7);
         break;
       }
@@ -922,7 +934,7 @@ class CPU {
       case AddressMode.Immediate:
       case AddressMode.ZeroPage:
       case AddressMode.ZeroPageY:
-      case AddressMode.Absolute: 
+      case AddressMode.Absolute:
       case AddressMode.AbsoluteY: {
         const address = this.getOperatorAddress({ addressMode });
         const [value] = this._bus.read({ address: address!, bytes: 1 });
@@ -1068,7 +1080,7 @@ class CPU {
     const { addressMode } = params;
     switch (addressMode) {
       case AddressMode.Accumulator: {
-        this.carry = Boolean((this._accumulator & 0x1));
+        this.carry = Boolean(this._accumulator & 0x1);
         const result = this._accumulator >> 1;
         this.accumulator = result & 0xff;
         this.zero = this._accumulator === 0;
@@ -1100,8 +1112,8 @@ class CPU {
     switch (addressMode) {
       case AddressMode.Accumulator: {
         const cFlag = this.carry ? 1 : 0;
-        const result = (this.accumulator << 1) | (cFlag);
-        this.carry = Boolean(result & 0xFF00);
+        const result = (this.accumulator << 1) | cFlag;
+        this.carry = Boolean(result & 0xff00);
         this.zero = (result & 0xff) === 0;
         this.negative = Boolean((result & 0x80) >> 7);
         this._accumulator = result & 0xff;
@@ -1114,8 +1126,8 @@ class CPU {
         const address = this.getOperatorAddress({ addressMode })!;
         const [value] = this._bus.read({ address, bytes: 1 });
         const cFlag = this.carry ? 1 : 0;
-        const result = (value << 1) | (cFlag);
-        this.carry = Boolean(result & 0xFF00);
+        const result = (value << 1) | cFlag;
+        this.carry = Boolean(result & 0xff00);
         this.zero = (result & 0xff) === 0;
         this.negative = Boolean((result & 0x80) >> 7);
         this._bus.write({ address, data: [result & 0xff] });
@@ -1194,7 +1206,7 @@ class CPU {
     switch (addressMode) {
       case AddressMode.Implicit: {
         this.stackPointer += 1;
-    
+
         const [low] = this._bus.read({
           address: CPU.stackOffset + this.stackPointer,
           bytes: 1,
@@ -1206,7 +1218,7 @@ class CPU {
           address: CPU.stackOffset + this.stackPointer,
           bytes: 1,
         });
-        this._programCounter |= (high << 8);
+        this._programCounter |= high << 8;
         this._programCounter += 1;
         break;
       }
@@ -1258,8 +1270,8 @@ class CPU {
       case AddressMode.IndirectIndexed: {
         const address = this.getOperatorAddress({ addressMode })!;
         const [value] = this._bus.read({ address, bytes: 1 });
-        const invertedValue = value ^ 0xFF;
-        
+        const invertedValue = value ^ 0xff;
+
         const result = this.accumulator + invertedValue + (this.carry ? 1 : 0);
 
         this.carry = Boolean((result & CPU.stackOffset) >> 8);
@@ -1279,35 +1291,51 @@ class CPU {
 
   private irq() {
     if (!this.interruptDisable) {
-      this._bus.write({address: CPU.stackOffset + this.stackPointer, data:[ (this.programCounter >> 8) & 0xFF]});
+      this._bus.write({
+        address: CPU.stackOffset + this.stackPointer,
+        data: [(this.programCounter >> 8) & 0xff],
+      });
       this.stackPointer -= 1;
-      this._bus.write({address: CPU.stackOffset + this.stackPointer, data:[ this.programCounter & 0xFF]});
+      this._bus.write({
+        address: CPU.stackOffset + this.stackPointer,
+        data: [this.programCounter & 0xff],
+      });
       this.stackPointer -= 1;
       this._status |= 0x30;
       this.interruptDisable = true;
-      this._bus.write({address: CPU.stackOffset + this.stackPointer, data:[ this.status ]});
+      this._bus.write({
+        address: CPU.stackOffset + this.stackPointer,
+        data: [this.status],
+      });
       this.stackPointer -= 1;
-      const [low, high] = this._bus.read({address: 0xFE, bytes:2});
+      const [low, high] = this._bus.read({ address: 0xfe, bytes: 2 });
       this._programCounter = (high << 8) | low;
     }
   }
 
-
   private nmi() {
-    this._bus.write({address: CPU.stackOffset + this.stackPointer, data:[ (this.programCounter >> 8) & 0xFF]});
+    this._bus.write({
+      address: CPU.stackOffset + this.stackPointer,
+      data: [(this.programCounter >> 8) & 0xff],
+    });
     this.stackPointer -= 1;
-    this._bus.write({address: CPU.stackOffset + this.stackPointer, data:[ this.programCounter & 0xFF]});
+    this._bus.write({
+      address: CPU.stackOffset + this.stackPointer,
+      data: [this.programCounter & 0xff],
+    });
     this.stackPointer -= 1;
 
     this._status ^= 0x30;
     this.interruptDisable = true;
-    this._bus.write({address: CPU.stackOffset + this.stackPointer, data:[ this.status ]});
+    this._bus.write({
+      address: CPU.stackOffset + this.stackPointer,
+      data: [this.status],
+    });
     this.stackPointer -= 1;
 
-    const [low] = this._bus.read({address: 0xFA, bytes:1});
-    const [high] = this._bus.read({address: 0xFF, bytes:1});
+    const [low] = this._bus.read({ address: 0xfa, bytes: 1 });
+    const [high] = this._bus.read({ address: 0xff, bytes: 1 });
     this._programCounter = (high << 8) | low;
-
   }
 
   get accumulator() {
@@ -1431,7 +1459,7 @@ class CPU {
     this._y = 0;
     this._status = 0;
     this._stackPointer = 0xfd;
-    this._programCounter = 0xC000;
+    this._programCounter = 0xc000;
   }
 
   tick(): void {
@@ -1439,7 +1467,6 @@ class CPU {
       address: this._programCounter,
       bytes: 1,
     });
-    
 
     console.log(`PC: 0x${this.programCounter.toString(16)}`);
     console.log(`OPCODE: ${opCode.toString(16)}`);
