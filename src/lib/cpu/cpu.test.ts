@@ -17,9 +17,9 @@ describe("CPU Table Test", () => {
         cpu.reset();
       });
 
-      it("Test", () => {
+      it("nestest.nes official opcodes test", () => {
         for (const test of testResults) {
-            console.log(test);
+            // console.log(test);
             expect(cpu.programCounter).toEqual(test.pc);
             expect(cpu.accumulator).toEqual(test.accumulator);
             expect(cpu.x).toEqual(test.x);
