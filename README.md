@@ -16,7 +16,14 @@ Program counter 50876 (0xc6bc) is the address of the end of the test for the off
 
 Run the development server:
 ```
-pnpm i
+pnpm run dev
+```
+
+Run the table driven tests:
+```
+pnpm run test
+
+Enter a when prompted in terminal to run all tests.
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.

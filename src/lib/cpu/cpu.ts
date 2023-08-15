@@ -1468,8 +1468,8 @@ class CPU {
       bytes: 1,
     });
 
-    console.log(`PC: 0x${this.programCounter.toString(16)}`);
-    console.log(`OPCODE: ${opCode.toString(16)}`);
+    // console.log(`PC: 0x${this.programCounter.toString(16)}`);
+    // console.log(`OPCODE: ${opCode.toString(16)}`);
     // console.log(`ACC: 0x${this.accumulator.toString(16)}`);
     // console.log(`SP: 0x${this.stackPointer.toString(16)}`);
     // console.log(`X: 0x${this.x.toString(16)}`);
