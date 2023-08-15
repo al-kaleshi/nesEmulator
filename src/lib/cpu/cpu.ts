@@ -340,11 +340,10 @@ class CPU {
 
   private bit(params: InstructionParams) {
     const { addressMode } = params;
-
     switch (addressMode) {
       case AddressMode.ZeroPage:
       case AddressMode.Absolute: {
-        const [address] = this._bus.read({ address: this.getOperatorAddress({ addressMode })!, bytes: 1 })!;
+        const address = this.getOperatorAddress({ addressMode })!;
         const [value] = this._bus.read({ address, bytes: 1 });
         const temp = this.accumulator & value!;
         this.zero = (temp & 0xff) === 0;
@@ -876,8 +875,7 @@ class CPU {
       case AddressMode.IndexedIndirect:
       case AddressMode.IndirectIndexed: {
         const address = this.getOperatorAddress({ addressMode })!;
-        const [value] = this._bus.read({ address, bytes: 1 });
-        this._bus.write({ address: value, data: [this._accumulator] });
+        this._bus.write({ address, data: [this._accumulator] });
         break;
       }
       default: {
@@ -1070,7 +1068,7 @@ class CPU {
     const { addressMode } = params;
     switch (addressMode) {
       case AddressMode.Accumulator: {
-        this.carry = Boolean((this._accumulator & CPU.stackOffset) >> 8);
+        this.carry = Boolean((this._accumulator & 0x1));
         const result = this._accumulator >> 1;
         this.accumulator = result & 0xff;
         this.zero = this._accumulator === 0;
@@ -1083,7 +1081,7 @@ class CPU {
       case AddressMode.AbsoluteX: {
         const address = this.getOperatorAddress({ addressMode });
         const [value] = this._bus.read({ address: address!, bytes: 1 });
-        this.carry = Boolean((value & CPU.stackOffset) >> 8);
+        this.carry = Boolean(value & 0x1);
         const result = value >> 1;
         this._bus.write({ address: address!, data: [result & 0xff] });
         this.zero = (result & 0xff) === 0;
@@ -1101,11 +1099,12 @@ class CPU {
 
     switch (addressMode) {
       case AddressMode.Accumulator: {
-        this.accumulator =
-          ((this.accumulator << 1) | (this.carry ? 1 : 0)) & 0xff;
-        this.carry = Boolean((this.accumulator & CPU.stackOffset) >> 8);
-        this.zero = (this.accumulator & 0xff) === 0;
-        this.negative = Boolean((this.accumulator & 0xff & 0x80) >> 7);
+        const cFlag = this.carry ? 1 : 0;
+        const result = (this.accumulator << 1) | (cFlag);
+        this.carry = Boolean(result & 0xFF00);
+        this.zero = (result & 0xff) === 0;
+        this.negative = Boolean((result & 0x80) >> 7);
+        this._accumulator = result & 0xff;
         break;
       }
       case AddressMode.ZeroPage:
@@ -1114,10 +1113,11 @@ class CPU {
       case AddressMode.AbsoluteX: {
         const address = this.getOperatorAddress({ addressMode })!;
         const [value] = this._bus.read({ address, bytes: 1 });
-        const result = (value << 1) | (this.carry ? 1 : 0);
-        this.carry = Boolean((result & CPU.stackOffset) >> 8);
+        const cFlag = this.carry ? 1 : 0;
+        const result = (value << 1) | (cFlag);
+        this.carry = Boolean(result & 0xFF00);
         this.zero = (result & 0xff) === 0;
-        this.negative = Boolean((result & 0xff & 0x80) >> 7);
+        this.negative = Boolean((result & 0x80) >> 7);
         this._bus.write({ address, data: [result & 0xff] });
         break;
       }
@@ -1129,14 +1129,14 @@ class CPU {
 
   private ror(params: InstructionParams) {
     const { addressMode } = params;
-
     switch (addressMode) {
       case AddressMode.Accumulator: {
-        this.accumulator =
-          (((this.carry ? 1 : 0) << 7) | (this.accumulator >> 1)) & 0xff;
-        this.carry = Boolean((this.accumulator & CPU.stackOffset) >> 8);
-        this.zero = (this.accumulator & 0xff) === 0;
-        this.negative = Boolean((this.accumulator & 0xff & 0x80) >> 7);
+        const cFlag = this.carry ? 1 : 0;
+        const result = (cFlag << 7) | (this.accumulator >> 1);
+        this.carry = Boolean(this.accumulator & 0x1);
+        this.zero = (result & 0xff) === 0;
+        this.negative = Boolean((result & 0x80) >> 7);
+        this._accumulator = result & 0xff;
         break;
       }
       case AddressMode.ZeroPage:
@@ -1145,11 +1145,12 @@ class CPU {
       case AddressMode.AbsoluteX: {
         const address = this.getOperatorAddress({ addressMode })!;
         const [value] = this._bus.read({ address, bytes: 1 });
-        const result = ((this.carry ? 1 : 0) << 7) | (value >> 1);
-        this._bus.write({ address, data: [result & 0xff] });
-        this.carry = Boolean((value & CPU.stackOffset) >> 8);
+        const cFlag = this.carry ? 1 : 0;
+        const result = (cFlag << 7) | (value >> 1);
+        this.carry = Boolean(value & 0x1);
         this.zero = (result & 0xff) === 0;
-        this.negative = Boolean((result & 0xff & 0x80) >> 7);
+        this.negative = Boolean((result & 0x80) >> 7);
+        this._bus.write({ address, data: [result & 0xff] });
         break;
       }
       default: {
