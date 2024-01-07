@@ -30,7 +30,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 Load the nestest.nes by clicking choose file.
 
-Tick to advance the program. Refer to http://www.qmtpro.com/~nes/misc/nestest.log if interested in where I recieved my tests. Using reggex I was able to isolate every line follwoing the form,
+Tick to advance the program. Refer to http://www.qmtpro.com/~nes/misc/nestest.log Using reggex I was able to isolate every line following the form,
 { pc: ?, accumulator: ?, x: ?, y: ?, sp: 251 } (cpu-test-data.ts).
 I then put it into an array and looped through each one ensuring my flags and registers were all correct using jest. (cpu.test.ts).
 
