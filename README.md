@@ -2,35 +2,37 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
-First, install packages and run the development server:
+1. Clone the repo.
+
+2. install packages and run the development server:
 
 ```
 pnpm i
 ```
 
-Download nestest.nes file from [http://www.qmtpro.com/~nes/misc/]
+  2a. Download nestest.nes file from [http://www.qmtpro.com/~nes/misc/]
 
-``` Note:
-Program counter 50876 (0xc6bc) is the address of the end of the test for the offical NES opcodes. This emulator succesfullly passes all of the tests up to 0xc6bc.
-```
+  ``` Note:
+  Program counter 50876 (0xc6bc) is the address of the end of the test for the offical NES opcodes. This emulator succesfullly passes all of the tests up to 0xc6bc.
+  ```
 
-Run the development server:
-```
-pnpm run dev
-```
+  2b. Run the development server:
+  ```
+  pnpm run dev
+  ```
 
-Run the table driven tests:
+3. Run the table driven tests:
 ```
 pnpm run test
 
 Enter a when prompted in terminal to run all tests.
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-Load the nestest.nes by clicking choose file.
+5. Load the nestest.nes by clicking choose file.
 
-Tick to advance the program. Refer to http://www.qmtpro.com/~nes/misc/nestest.log Using reggex I was able to isolate every line following the form,
+6. Tick to advance the program. Refer to http://www.qmtpro.com/~nes/misc/nestest.log Using reggex I was able to isolate every line following the form,
 { pc: ?, accumulator: ?, x: ?, y: ?, sp: 251 } (cpu-test-data.ts).
 I then put it into an array and looped through each one ensuring my flags and registers were all correct using jest. (cpu.test.ts).
 
